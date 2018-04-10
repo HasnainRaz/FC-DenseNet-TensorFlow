@@ -6,6 +6,29 @@ This is an implementation of the 100 layer tiramisu, technically a fully convolu
   <img width="500" height="700" src="repo-images/network.png">
 </p>
 
+# Submodules
+The "submodules" that build up the Tiramisu are explained here, starting with the most atomic unit, the convolutional layer:
+<p align="center">
+  <img width="500" height="700" src="repo-images/conv-layer.png">
+</p>
+In code, it is implemented as:
+```python
+    def conv_layer(self, x, training, filters, name):
+        with tf.name_scope(name):
+            x = self.batch_norm(x, training, name=name+'_bn')
+            x = tf.nn.relu(x, name=name+'_relu')
+            x = tf.layers.conv2d(x,
+                                 filters=filters,
+                                 kernel_size=[3, 3],
+                                 strides=[1, 1],
+                                 padding='SAME',
+                                 dilation_rate=[1, 1],
+                                 activation=None,
+                                 kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                 name=name+'_conv3x3')
+            x = tf.layers.dropout(x, rate=0.2, training=training, name=name+'_dropout')
+```
+As can be seen, each "convolutional" layer is actually a 3 step procedure of batch normalization -> Relu -> 2D-Convolution -> Dropout
 
 # How to Run
 To run the network on your own dataset, do the following:
