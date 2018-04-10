@@ -9,9 +9,10 @@ This is an implementation of the 100 layer tiramisu, technically a fully convolu
 # Submodules
 The "submodules" that build up the Tiramisu are explained here, starting with the most atomic unit, the convolutional layer:
 <p align="center">
-  <img width="500" height="700" src="repo-images/conv-layer.png">
+  <img width="100" height="200" src="repo-images/conv-layer.png">
 </p>
 In code, it is implemented as:
+
 ```python
     def conv_layer(self, x, training, filters, name):
         with tf.name_scope(name):
