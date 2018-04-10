@@ -1,5 +1,5 @@
 # FC-DenseNet-Tensorflow
-This is an implementation of the 100 layer tiramisu, technically a fully convolutional DenseNet, in TensorFlow ([Tiramisu](https://arxiv.org/abs/1611.09326)). The aim of the repository is to break down the working modules of the network, as presented in the paper, for ease of understand. To facilitate, the network is defined in a class, with functions for each block in the network. This promotes a modular view of the network, and understanding of what each component does, individually.
+This is an implementation of the 100 layer tiramisu, technically a fully convolutional DenseNet, in TensorFlow ([Tiramisu](https://arxiv.org/abs/1611.09326)). The aim of the repository is to break down the working modules of the network, as presented in the paper, for ease of understanding. To facilitate this, the network is defined in a class, with functions for each block in the network. This promotes a modular view, and an understanding of what each component does, individually.
 
 # Network Architecture
 <p align="center">
