@@ -1,4 +1,3 @@
-import tensorflow as tf
 import os
 import argparse
 from train import TrainEval
@@ -38,5 +37,4 @@ if __name__ == "__main__":
                                     FLAGS.num_classes)
 
     train_eval.train_eval(FLAGS.batch_size, FLAGS.growth_k, layers_per_block, FLAGS.epochs, FLAGS.learning_rate)
-    #train_eval_test.infer(FLAGS.batch_size, FLAGS.growth_k, layers_per_block)
 

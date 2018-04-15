@@ -1,8 +1,7 @@
 import tensorflow as tf
 import utility
 from model import DenseTiramisu
-from losses import xentropy_loss
-from helpers import calculate_iou
+
 
 class TrainEval(object):
 
@@ -32,10 +31,10 @@ class TrainEval(object):
 
         logits = tiramisu.model(image_ph, training)
 
-        loss = tf.reduce_mean(xentropy_loss(logits, mask_ph, batch_size))
+        loss = tf.reduce_mean(tiramisu.xentropy_loss(logits, mask_ph))
 
         with tf.variable_scope("mean_iou_train"):
-            iou, iou_update = calculate_iou(mask_ph, logits, self.num_classes)
+            iou, iou_update = tiramisu.calculate_iou(mask_ph, logits)
 
         optimizer = tf.train.AdamOptimizer(learning_rate)
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
