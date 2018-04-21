@@ -1,6 +1,9 @@
 import tensorflow as tf
 import utility
 from model import DenseTiramisu
+import os
+import cv2
+import numpy as np
 
 
 class TrainEval(object):
@@ -17,10 +20,12 @@ class TrainEval(object):
 
     def train_eval(self, batch_size, growth_k, layers_per_block, epochs, learning_rate=1e-3):
         """Trains the model on the dataset, and does periodic validations."""
-        train_data, train_queue_init = utility.data_batch(self.train_image_paths, self.train_mask_paths, batch_size)
+        train_data, train_queue_init = utility.data_batch(
+            self.train_image_paths, self.train_mask_paths, batch_size)
         train_image_tensor, train_mask_tensor = train_data
 
-        eval_data, eval_queue_init = utility.data_batch(self.eval_image_paths, self.eval_mask_paths, batch_size)
+        eval_data, eval_queue_init = utility.data_batch(
+            self.eval_image_paths, self.eval_mask_paths, batch_size)
         eval_image_tensor, eval_mask_tensor = eval_data
 
         image_ph = tf.placeholder(tf.float32, shape=[None, 256, 256, 3])
@@ -49,31 +54,37 @@ class TrainEval(object):
         saver = tf.train.Saver(max_to_keep=20)
 
         with tf.Session() as sess:
-            sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+            sess.run([tf.global_variables_initializer(),
+                      tf.local_variables_initializer()])
             for epoch in range(epochs):
                 writer = tf.summary.FileWriter(self.model_save_dir, sess.graph)
                 sess.run([train_queue_init, eval_queue_init])
                 total_train_cost, total_eval_cost = 0, 0
                 total_train_iou, total_eval_iou = 0, 0
                 for train_step in range(self.num_train_images // batch_size):
-                    image_batch, mask_batch, _ = sess.run([train_image_tensor, train_mask_tensor, reset_iou])
-                    #print("Mask batch shape:", mask_batch.shape)
+                    image_batch, mask_batch, _ = sess.run(
+                        [train_image_tensor, train_mask_tensor, reset_iou])
+                    # print("Mask batch shape:", mask_batch.shape)
                     feed_dict = {image_ph: image_batch,
                                  mask_ph: mask_batch,
                                  training: True}
-                    cost, _, _ = sess.run([loss, opt, iou_update], feed_dict=feed_dict)
+                    cost, _, _ = sess.run(
+                        [loss, opt, iou_update], feed_dict=feed_dict)
                     train_iou = sess.run(iou, feed_dict=feed_dict)
                     total_train_cost += cost
                     total_train_iou += train_iou
                     if train_step % 50 == 0:
-                        print("Step: ", train_step, "Cost: ", cost, "IoU:", train_iou)
+                        print("Step: ", train_step, "Cost: ",
+                              cost, "IoU:", train_iou)
 
-                for eval_step in range(self.num_eval_images // batch_size):
-                    image_batch, mask_batch, _ = sess.run([eval_image_tensor, eval_mask_tensor, reset_iou])
+                for eval_step in range(1):
+                    image_batch, mask_batch, _ = sess.run(
+                        [eval_image_tensor, eval_mask_tensor, reset_iou])
                     feed_dict = {image_ph: image_batch,
                                  mask_ph: mask_batch,
                                  training: True}
-                    eval_cost, _ = sess.run([loss, iou_update], feed_dict=feed_dict)
+                    eval_cost, _ = sess.run(
+                        [loss, iou_update], feed_dict=feed_dict)
                     eval_iou = sess.run(iou, feed_dict=feed_dict)
                     total_eval_cost += eval_cost
                     total_eval_iou += eval_iou
@@ -85,3 +96,27 @@ class TrainEval(object):
 
                 print("Saving model...")
                 saver.save(sess, self.model_save_dir, global_step=epoch)
+
+    def infer(self, image_paths, batch_size):
+        infer_data, infer_queue_init = utility.data_batch(
+            image_paths, None, batch_size)
+        image_ph = tf.placeholder(tf.float32, shape=[None, 256, 256, 3])
+        training = tf.placeholder(tf.bool, shape=[])
+        tiramisu = DenseTiramisu(16, [2, 3, 3], 2)
+        logits = tiramisu.model(image_ph, training)
+        mask = tf.squeeze(tf.argmax(logits, axis=3))
+
+        saver = tf.train.Saver()
+        with tf.Session() as sess:
+            saver.restore(sess, 'trained_tiramisu/model.ckpt-18')
+            sess.run(infer_queue_init)
+            for i in range(1):
+                image = sess.run(infer_data)
+                feed_dict = {
+                    image_ph: image,
+                    training: True
+                }
+                prediction = sess.run(mask, feed_dict)
+                for j in range(prediction.shape[0]):
+                    cv2.imwrite('predictions/' +
+                                str(j) + '.png', 255 * prediction[j, :, :])
