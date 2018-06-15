@@ -30,7 +30,7 @@ class DenseTiramisu(object):
             loss: The cross entropy loss over each image in the batch.
         """
         labels = tf.cast(labels, tf.int32)
-        logits = tf.reshape(logits, [tf.shape(logits)[0], -1, 2])
+        logits = tf.reshape(logits, [tf.shape(logits)[0], -1, self.num_classes)
         labels = tf.reshape(labels, [tf.shape(labels)[0], -1])
         loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
                 logits=logits, labels=labels, name="loss")
