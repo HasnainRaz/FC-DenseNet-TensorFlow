@@ -213,6 +213,7 @@ class DenseTiramisu(object):
                 concats.append(x)
                 x = self.transition_down(x, training, x.get_shape()[-1], 'trans_down_' + str(block_nb))
 
+        x = dense
         print(dense.get_shape())
         print("Building upsample path...")
         for i, block_nb in enumerate(range(self.nb_blocks - 1, 0, -1)):
