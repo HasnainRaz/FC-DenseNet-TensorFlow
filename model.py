@@ -30,7 +30,7 @@ class DenseTiramisu(object):
             loss: The cross entropy loss over each image in the batch.
         """
         labels = tf.cast(labels, tf.int32)
-        logits = tf.reshape(logits, [tf.shape(logits)[0], -1, self.num_classes)
+        logits = tf.reshape(logits, [tf.shape(logits)[0], -1, self.num_classes])
         labels = tf.reshape(labels, [tf.shape(labels)[0], -1])
         loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
                 logits=logits, labels=labels, name="loss")
@@ -202,24 +202,22 @@ class DenseTiramisu(object):
                              activation=None,
                              kernel_initializer=tf.contrib.layers.xavier_initializer(),
                              name='first_conv3x3')
-        print(x.get_shape())
-        print("Building downsample path...")
+        print("First Convolution Out: ", x.get_shape())
         for block_nb in range(0, self.nb_blocks):
             dense = self.dense_block(x, training, block_nb, 'down_dense_block_' + str(block_nb))
 
             if block_nb != self.nb_blocks - 1:
                 x = tf.concat([x, dense], axis=3, name='down_concat_' + str(block_nb))
-                print(x.get_shape())
                 concats.append(x)
                 x = self.transition_down(x, training, x.get_shape()[-1], 'trans_down_' + str(block_nb))
+                print("Downsample Out:", x.get_shape())
 
         x = dense
-        print(dense.get_shape())
-        print("Building upsample path...")
+        print("Bottleneck Block: ", dense.get_shape())
         for i, block_nb in enumerate(range(self.nb_blocks - 1, 0, -1)):
             x = self.transition_up(x, x.get_shape()[-1], 'trans_up_' + str(block_nb))
             x = tf.concat([x, concats[len(concats) - i - 1]], axis=3, name='up_concat_' + str(block_nb))
-            print(x.get_shape())
+            print("Upsample after concat: ", x.get_shape())
             x = self.dense_block(x, training, block_nb, 'up_dense_block_' + str(block_nb))
 
         x = tf.layers.conv2d(x,
@@ -231,6 +229,6 @@ class DenseTiramisu(object):
                              activation=None,
                              kernel_initializer=tf.contrib.layers.xavier_initializer(),
                              name='last_conv1x1')
-        print(x.get_shape())
+        print("Mask Prediction: ", x.get_shape())
 
         return x

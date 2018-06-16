@@ -22,11 +22,11 @@ class TrainEval(object):
         """Trains the model on the dataset, and does periodic validations."""
         train_data, train_queue_init = utility.data_batch(
             self.train_image_paths, self.train_mask_paths, batch_size)
-        train_image_tensor, train_mask_tensor = train_data
+        #train_image_tensor, train_mask_tensor = train_data
 
         eval_data, eval_queue_init = utility.data_batch(
             self.eval_image_paths, self.eval_mask_paths, batch_size)
-        eval_image_tensor, eval_mask_tensor = eval_data
+        #eval_image_tensor, eval_mask_tensor = eval_data
 
         image_ph = tf.placeholder(tf.float32, shape=[None, 256, 256, 3])
         mask_ph = tf.placeholder(tf.int32, shape=[None, 256, 256, 1])

@@ -68,6 +68,9 @@ def data_batch(image_paths, mask_paths, batch_size=4, augment=False, num_threads
                  to yield batches"""
 
     # Convert lists of paths to tensors for tensorflow
+
+    return tf.constant(0), tf.constant(0)
+    
     images_name_tensor = tf.constant(image_paths)
 
     if mask_paths:

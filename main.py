@@ -41,7 +41,7 @@ def get_data_paths_list(image_folder, mask_folder):
 if __name__ == "__main__":
     FLAGS = parser.parse_args()
     layers_per_block = [int(x) for x in FLAGS.layers_per_block.split(",")]
-    print(layers_per_block)
+    print("Layers per block: ", layers_per_block)
 
     image_paths, mask_paths = get_data_paths_list(
         FLAGS.train_images, FLAGS.train_masks)
@@ -51,9 +51,9 @@ if __name__ == "__main__":
     train_eval = TrainEval(image_paths, mask_paths, eval_image_paths, eval_mask_paths, FLAGS.ckpt_dir,
                            FLAGS.num_classes)
 
-    # train_eval.train_eval(FLAGS.batch_size, FLAGS.growth_k,
-    #                      layers_per_block, FLAGS.epochs, FLAGS.learning_rate)
-    image_path = ['validation/images/' +
-                  x for x in os.listdir('validation/images/') if x.endswith('.png')]
+    train_eval.train_eval(FLAGS.batch_size, FLAGS.growth_k,
+                          layers_per_block, FLAGS.epochs, FLAGS.learning_rate)
+    #image_path = ['validation/images/' +
+    #              x for x in os.listdir('validation/images/') if x.endswith('.png')]
 
-    train_eval.infer(image_path, FLAGS.batch_size)
+    #train_eval.infer(image_path, FLAGS.batch_size)
