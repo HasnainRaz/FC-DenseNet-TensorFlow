@@ -41,8 +41,8 @@ def main():
 
     assert len(image_paths) == len(mask_paths), "Number of train images and masks found is different"
     assert len(eval_image_paths) == len(eval_mask_paths), "Number of validation images and masks found is different"
-    assert len(image_paths // FLAGS.batch_size) > 0, "Number of training images less than batch size"
-    assert len(eval_image_paths // FLAGS.batch_size) > 0, "Number of validation images less than batch size"
+    assert len(image_paths) // FLAGS.batch_size > 0, "Number of training images less than batch size"
+    assert len(eval_image_paths) // FLAGS.batch_size > 0, "Number of validation images less than batch size"
 
     train_eval = TrainEval(image_paths, mask_paths, eval_image_paths, eval_mask_paths, FLAGS.ckpt_dir,
                            FLAGS.num_classes)

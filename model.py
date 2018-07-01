@@ -193,42 +193,46 @@ class DenseTiramisu(object):
             x: Tensor, raw unscaled logits of predicted segmentation.
         """
         concats = []
-        x = tf.layers.conv2d(x,
-                             filters=48,
-                             kernel_size=[3, 3],
-                             strides=[1, 1],
-                             padding='SAME',
-                             dilation_rate=[1, 1],
-                             activation=None,
-                             kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                             name='first_conv3x3')
-        print("First Convolution Out: ", x.get_shape())
-        for block_nb in range(0, self.nb_blocks):
-            dense = self.dense_block(x, training, block_nb, 'down_dense_block_' + str(block_nb))
+        with tf.variable_scope('encoder'):
+            x = tf.layers.conv2d(x,
+                                filters=48,
+                                kernel_size=[3, 3],
+                                strides=[1, 1],
+                                padding='SAME',
+                                dilation_rate=[1, 1],
+                                activation=None,
+                                kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                name='first_conv3x3')
+            print("First Convolution Out: ", x.get_shape())
+            for block_nb in range(0, self.nb_blocks):
+                dense = self.dense_block(x, training, block_nb, 'down_dense_block_' + str(block_nb))
 
-            if block_nb != self.nb_blocks - 1:
-                x = tf.concat([x, dense], axis=3, name='down_concat_' + str(block_nb))
-                concats.append(x)
-                x = self.transition_down(x, training, x.get_shape()[-1], 'trans_down_' + str(block_nb))
-                print("Downsample Out:", x.get_shape())
+                if block_nb != self.nb_blocks - 1:
+                    x = tf.concat([x, dense], axis=3, name='down_concat_' + str(block_nb))
+                    concats.append(x)
+                    x = self.transition_down(x, training, x.get_shape()[-1], 'trans_down_' + str(block_nb))
+                    print("Downsample Out:", x.get_shape())
 
-        x = dense
-        print("Bottleneck Block: ", dense.get_shape())
-        for i, block_nb in enumerate(range(self.nb_blocks - 1, 0, -1)):
-            x = self.transition_up(x, x.get_shape()[-1], 'trans_up_' + str(block_nb))
-            x = tf.concat([x, concats[len(concats) - i - 1]], axis=3, name='up_concat_' + str(block_nb))
-            print("Upsample after concat: ", x.get_shape())
-            x = self.dense_block(x, training, block_nb, 'up_dense_block_' + str(block_nb))
+            x = dense
+            print("Bottleneck Block: ", dense.get_shape())
 
-        x = tf.layers.conv2d(x,
-                             filters=self.num_classes,
-                             kernel_size=[1, 1],
-                             strides=[1, 1],
-                             padding='SAME',
-                             dilation_rate=[1, 1],
-                             activation=None,
-                             kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                             name='last_conv1x1')
-        print("Mask Prediction: ", x.get_shape())
+        with tf.variable_scope('decoder'):
+            for i, block_nb in enumerate(range(self.nb_blocks - 1, 0, -1)):
+                x = self.transition_up(x, x.get_shape()[-1], 'trans_up_' + str(block_nb))
+                x = tf.concat([x, concats[len(concats) - i - 1]], axis=3, name='up_concat_' + str(block_nb))
+                print("Upsample after concat: ", x.get_shape())
+                x = self.dense_block(x, training, block_nb, 'up_dense_block_' + str(block_nb))
+
+        with tf.variable_scope('prediction'):
+            x = tf.layers.conv2d(x,
+                                filters=self.num_classes,
+                                kernel_size=[1, 1],
+                                strides=[1, 1],
+                                padding='SAME',
+                                dilation_rate=[1, 1],
+                                activation=None,
+                                kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                name='last_conv1x1')
+            print("Mask Prediction: ", x.get_shape())
 
         return x
