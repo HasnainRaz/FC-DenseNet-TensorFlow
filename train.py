@@ -22,11 +22,11 @@ class TrainEval(object):
         """Trains the model on the dataset, and does periodic validations."""
         train_data, train_queue_init = utility.data_batch(
             self.train_image_paths, self.train_mask_paths, batch_size)
-        #train_image_tensor, train_mask_tensor = train_data
+        train_image_tensor, train_mask_tensor = train_data
 
         eval_data, eval_queue_init = utility.data_batch(
             self.eval_image_paths, self.eval_mask_paths, batch_size)
-        #eval_image_tensor, eval_mask_tensor = eval_data
+        eval_image_tensor, eval_mask_tensor = eval_data
 
         image_ph = tf.placeholder(tf.float32, shape=[None, 256, 256, 3])
         mask_ph = tf.placeholder(tf.int32, shape=[None, 256, 256, 1])
@@ -52,7 +52,8 @@ class TrainEval(object):
         reset_iou = tf.variables_initializer(var_list=running_vars)
 
         saver = tf.train.Saver(max_to_keep=20)
-
+        encoder_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='encoder')
+        print('Encoder Variables: ', encoder_vars)
         with tf.Session() as sess:
             sess.run([tf.global_variables_initializer(),
                       tf.local_variables_initializer()])
@@ -77,7 +78,7 @@ class TrainEval(object):
                         print("Step: ", train_step, "Cost: ",
                               cost, "IoU:", train_iou)
 
-                for eval_step in range(1):
+                for eval_step in range(self.num_eval_images // batch_size):
                     image_batch, mask_batch, _ = sess.run(
                         [eval_image_tensor, eval_mask_tensor, reset_iou])
                     feed_dict = {image_ph: image_batch,
@@ -110,7 +111,7 @@ class TrainEval(object):
         with tf.Session() as sess:
             saver.restore(sess, 'trained_tiramisu/model.ckpt-18')
             sess.run(infer_queue_init)
-            for i in range(1):
+            for i in range(len(image_paths) // batch_size):
                 image = sess.run(infer_data)
                 feed_dict = {
                     image_ph: image,
@@ -118,5 +119,4 @@ class TrainEval(object):
                 }
                 prediction = sess.run(mask, feed_dict)
                 for j in range(prediction.shape[0]):
-                    cv2.imwrite('predictions/' +
-                                str(j) + '.png', 255 * prediction[j, :, :])
+                    cv2.imwrite('predictions/{}.png'.format(j), 255 * prediction[j, :, :])

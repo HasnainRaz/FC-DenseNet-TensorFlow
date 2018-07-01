@@ -1,6 +1,6 @@
-import os
 import argparse
 from train import TrainEval
+from helpers import get_data_paths_list
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--train_images", default="data/training/images",
@@ -16,44 +16,40 @@ parser.add_argument("--ckpt_dir", default="models/model.ckpt",
 parser.add_argument("--layers_per_block", default="2,3,3",
                     help="Number of layers in dense blocks")
 parser.add_argument("--batch_size", default=8,
-                    help="Batch size for use in training")
+                    help="Batch size for use in training", type=int)
 parser.add_argument("--epochs", default=20,
-                    help="Number of epochs for training")
+                    help="Number of epochs for training", type=int)
 parser.add_argument("--num_threads", default=2,
-                    help="Number of threads to use for data input pipeline")
-parser.add_argument("--growth_k", default=16, help="Growth rate for Tiramisu")
-parser.add_argument("--num_classes",   default=2, help="Number of classes")
+                    help="Number of threads to use for data input pipeline", type=int)
+parser.add_argument("--growth_k", default=16, help="Growth rate for Tiramisu", type=int)
+parser.add_argument("--num_classes",   default=2, help="Number of classes", type=int)
 parser.add_argument("--learning_rate", default=1e-4,
-                    help="Learning rate for optimizer")
+                    help="Learning rate for optimizer", type=float)
 
 
-def get_data_paths_list(image_folder, mask_folder):
-    """Returns lists of paths to each image and mask."""
-
-    image_paths = [os.path.join(image_folder, x) for x in os.listdir(
-        image_folder) if x.endswith(".png")]
-    mask_paths = [os.path.join(mask_folder, os.path.basename(x))
-                  for x in image_paths]
-
-    return image_paths, mask_paths
-
-
-if __name__ == "__main__":
+def main():
     FLAGS = parser.parse_args()
     layers_per_block = [int(x) for x in FLAGS.layers_per_block.split(",")]
-    print("Layers per block: ", layers_per_block)
 
-    image_paths, mask_paths = get_data_paths_list(
-        FLAGS.train_images, FLAGS.train_masks)
-    eval_image_paths, eval_mask_paths = get_data_paths_list(
-        FLAGS.val_images, FLAGS.val_masks)
+    try:
+        image_paths, mask_paths = get_data_paths_list(
+            FLAGS.train_images, FLAGS.train_masks)
+        eval_image_paths, eval_mask_paths = get_data_paths_list(
+            FLAGS.val_images, FLAGS.val_masks)
+    except FileNotFoundError:
+        print("No images found the directory specified directory")
+
+    assert len(image_paths) == len(mask_paths), "Number of train images and masks found is different"
+    assert len(eval_image_paths) == len(eval_mask_paths), "Number of validation images and masks found is different"
+    assert len(image_paths) // FLAGS.batch_size > 0, "Number of training images less than batch size"
+    assert len(eval_image_paths) // FLAGS.batch_size > 0, "Number of validation images less than batch size"
 
     train_eval = TrainEval(image_paths, mask_paths, eval_image_paths, eval_mask_paths, FLAGS.ckpt_dir,
                            FLAGS.num_classes)
 
     train_eval.train_eval(FLAGS.batch_size, FLAGS.growth_k,
                           layers_per_block, FLAGS.epochs, FLAGS.learning_rate)
-    #image_path = ['validation/images/' +
-    #              x for x in os.listdir('validation/images/') if x.endswith('.png')]
 
-    #train_eval.infer(image_path, FLAGS.batch_size)
+
+if __name__ == "__main__":
+    main()
