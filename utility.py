@@ -73,7 +73,7 @@ def data_batch(image_paths, mask_paths, batch_size=4, augment=False, num_threads
     if mask_paths:
         mask_name_tensor = tf.constant(mask_paths)
         data = tf.data.Dataset.from_tensor_slices(
-            (images_name_tensor, mask_name_tensor))s
+            (images_name_tensor, mask_name_tensor))
         data = data.map(
             _parse_data, num_parallel_calls=num_threads).prefetch(30)
         data = data.map(
