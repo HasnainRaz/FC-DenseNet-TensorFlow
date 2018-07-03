@@ -103,4 +103,35 @@ class TestModel(tf.test.TestCase):
             self.assertListEqual([2, 100, 100, 28], list(dense_out.eval().shape))
             self.assertEqual(len(conv_layers), 2)
 
+    def test_upsample_layer(self):
+        rand_tensor = tf.random_normal(shape=[2, 100, 100, 3], mean=127)
+        upsampled_example = self.tiramisu.transition_up(rand_tensor, 20, 'upsample')
+        with self.test_session() as sess:
+            sess.run(tf.global_variables_initializer())
+            result = sess.run(upsampled_example)
+            self.assertListEqual([2, 200, 200, 20], list(result.shape))
+
+    def test_downsample_layer(self):
+        rand_tensor = tf.random_normal(shape=[2, 100, 100, 3], mean=100)
+        training = tf.constant(True)
+        downsampled_tensor = self.tiramisu.transition_down(rand_tensor, training, 32, 'trans_down')
+        with self.test_session() as sess:
+            sess.run(tf.global_variables_initializer())
+            out_tensor = sess.run(downsampled_tensor)
+            self.assertListEqual([2, 50, 50, 32], list(out_tensor.shape))
     
+    def test_model(self):
+        rand_tensor = tf.random_normal(shape=[2, 100, 100, 3], mean=127)
+        training = tf.constant(True)
+        logits = self.tiramisu.model(rand_tensor, training)
+        encoder_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='encoder')
+        decoder_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='decoder')
+        predictions = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='prediction')
+
+        with self.test_session() as sess:
+            sess.run(tf.global_variables_initializer())
+            logits_values = sess.run(logits)
+        self.assertIsNotNone(encoder_vars)
+        self.assertIsNotNone(decoder_vars)
+        self.assertIsNotNone(predictions)
+        self.assertListEqual([2, 100, 100, 2], list(logits_values.shape))

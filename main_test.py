@@ -1,6 +1,5 @@
 import unittest
 from helpers import get_data_paths_list
-from main import main
 
 class TestMain(unittest.TestCase):
 
