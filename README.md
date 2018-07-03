@@ -67,9 +67,14 @@ val_images=path/to/validation/images --val_masks=path/to/validation/masks --ckpt
 ```
 The "layers_per_block" argument is only specified for the downsample path, upto the final bottleneck dense block, the upsample path is then automtically built by mirroring the downsample path.
 
+# Tests
+The python files ending with "*_test.py" are unit test files, if you make changes or have just cloned the repo, it is a good idea to run them once in your favorite Python IDE, they should let you know if your changes break anything.
+Currently, the test coverage is not that high, I plan to keep adding more in the future.
+
 # TODOs:
 1. Add some more functionality in the code.
 2. Add more detail into this readme.
-3. Add summary writing and model graph saving.
+3. Add summary writing.
 4. Rework command line arguments.
 5. Update with some examples of performance once trained.
+6. Increase test coverage.
