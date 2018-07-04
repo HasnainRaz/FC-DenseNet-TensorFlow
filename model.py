@@ -1,4 +1,8 @@
+import os
+import cv2
+import utility
 import tensorflow as tf
+from helpers import get_data_paths_list
 
 
 class DenseTiramisu(object):
@@ -17,6 +21,7 @@ class DenseTiramisu(object):
         self.layers_per_block = layers_per_block
         self.nb_blocks = len(layers_per_block)
         self.num_classes = num_classes
+        self.logits = None
 
     def xentropy_loss(self, logits, labels):
         """
@@ -236,3 +241,148 @@ class DenseTiramisu(object):
             print("Mask Prediction: ", x.get_shape())
 
         return x
+
+    def train(self, train_path, val_path, save_dir, batch_size, epochs, learning_rate):
+        """
+        Trains the Tiramisu on the specified training data and periodically validates
+        on the validation data.
+
+        Args:
+            train_path: Directory where the training data is present.
+            val_path: Directory where the validation data is present.
+            save_dir: Directory where to save the model and training summaries.
+            batch_size: Batch size to use for training.
+            epochs: Number of epochs (complete passes over one dataset) to train for.
+            learning_rate: Learning rate for the optimizer.
+        Returns:
+            None
+        """
+
+        train_image_path = os.path.join(train_path, 'images')
+        train_mask_path = os.path.join(train_path, 'masks')
+        val_image_path = os.path.join(val_path, 'images')
+        val_mask_path = os.path.join(val_path, 'masks')
+
+        assert os.path.exists(train_image_path), "No training image folder found"
+        assert os.path.exists(train_mask_path), "No training mask folder found"
+        assert os.path.exists(val_image_path), "No validation image folder found"
+        assert os.path.exists(val_mask_path), "No validation mask folder found"
+
+        train_image_paths, train_mask_paths = get_data_paths_list(train_image_path, train_mask_path)
+        val_image_paths, val_mask_paths = get_data_paths_list(val_image_path, val_mask_path)
+
+        assert len(train_image_paths) == len(train_mask_paths), "Number of images and masks dont match in train folder"
+        assert len(val_image_paths) == len(val_mask_paths), "Number of images and masks dont match in validation folder"
+
+        self.num_train_images = len(train_image_paths)
+        self.num_val_images = len(val_image_paths)
+
+        train_data, train_queue_init = utility.data_batch(
+            train_image_paths, train_mask_paths, batch_size)
+        train_image_tensor, train_mask_tensor = train_data
+
+        eval_data, eval_queue_init = utility.data_batch(
+            val_image_paths, val_mask_paths, batch_size)
+        eval_image_tensor, eval_mask_tensor = eval_data
+
+        image_ph = tf.placeholder(tf.float32, shape=[None, 256, 256, 3])
+        mask_ph = tf.placeholder(tf.int32, shape=[None, 256, 256, 1])
+        training = tf.placeholder(tf.bool, shape=[])
+
+        if not self.logits:
+            self.logits = self.model(image_ph, training)
+
+        loss = tf.reduce_mean(self.xentropy_loss(self.logits, mask_ph))
+
+        with tf.variable_scope("mean_iou_train"):
+            iou, iou_update = self.calculate_iou(mask_ph, self.logits)
+
+        optimizer = tf.train.AdamOptimizer(learning_rate)
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            opt = optimizer.minimize(loss)
+
+        running_vars = tf.get_collection(
+            tf.GraphKeys.LOCAL_VARIABLES, scope="mean_iou_train")
+
+        reset_iou = tf.variables_initializer(var_list=running_vars)
+
+        saver = tf.train.Saver(max_to_keep=20)
+        encoder_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='encoder')
+        print('Encoder Variables: ', encoder_vars)
+        with tf.Session() as sess:
+            sess.run([tf.global_variables_initializer(),
+                    tf.local_variables_initializer()])
+            for epoch in range(epochs):
+                writer = tf.summary.FileWriter(os.path.dirname(save_dir), sess.graph)
+                sess.run([train_queue_init, eval_queue_init])
+                total_train_cost, total_val_cost = 0, 0
+                total_train_iou, total_val_iou = 0, 0
+                for train_step in range(self.num_train_images // batch_size):
+                    image_batch, mask_batch, _ = sess.run(
+                        [train_image_tensor, train_mask_tensor, reset_iou])
+                    feed_dict = {image_ph: image_batch,
+                                mask_ph: mask_batch,
+                                training: True}
+                    cost, _, _ = sess.run(
+                        [loss, opt, iou_update], feed_dict=feed_dict)
+                    train_iou = sess.run(iou, feed_dict=feed_dict)
+                    total_train_cost += cost
+                    total_train_iou += train_iou
+                    if train_step % 50 == 0:
+                        print("Step: ", train_step, "Cost: ",
+                            cost, "IoU:", train_iou)
+
+                for val_step in range(self.num_val_images // batch_size):
+                    image_batch, mask_batch, _ = sess.run(
+                        [eval_image_tensor, eval_mask_tensor, reset_iou])
+                    feed_dict = {image_ph: image_batch,
+                                mask_ph: mask_batch,
+                                training: True}
+                    eval_cost, _ = sess.run(
+                        [loss, iou_update], feed_dict=feed_dict)
+                    eval_iou = sess.run(iou, feed_dict=feed_dict)
+                    total_val_cost += eval_cost
+                    total_val_iou += eval_iou
+
+                print("Epoch: {0}, training loss: {1}, validation loss: {2}".format(epoch, 
+                                    total_train_cost / train_step, total_val_cost / val_step))
+                print("Epoch: {0}, training iou: {1}, val iou: {2}".format(epoch, 
+                                    total_train_iou / train_step, total_val_iou / val_step))
+                                    
+                print("Saving model...")
+                saver.save(sess, save_dir, global_step=epoch)
+
+    def infer(self, image_dir, batch_size, ckpt, output_folder):
+        """
+        Uses a trained model file to get predictions on the specified images.
+        Args:
+            image_dir: Directory where the images are located.
+            batch_size: Batch size to use while inferring (relevant if batch norm is used)
+            ckpt: Name of the checkpoint file to use.
+            output_folder: Folder where the predictions on the images shoudl be saved.
+        """
+        image_paths = [os.path.join(image_dir, x) for x in os.listdir(image_dir) if x.endswith('.png') or x.endswith('.jpg')]
+        infer_data, infer_queue_init = utility.data_batch(
+            image_paths, None, batch_size)
+        image_ph = tf.placeholder(tf.float32, shape=[None, 256, 256, 3])
+        training = tf.placeholder(tf.bool, shape=[])
+
+        if not self.logits:
+            self.logits = self.model(image_ph, training)
+
+        mask = tf.squeeze(tf.argmax(self.logits, axis=3))
+
+        saver = tf.train.Saver()
+        with tf.Session() as sess:
+            saver.restore(sess, ckpt)
+            sess.run(infer_queue_init)
+            for _ in range(len(image_paths) // batch_size):
+                image = sess.run(infer_data)
+                feed_dict = {
+                    image_ph: image,
+                    training: True
+                }
+                prediction = sess.run(mask, feed_dict)
+                for j in range(prediction.shape[0]):
+                    cv2.imwrite(os.path.join(output_folder, '{}.png'.format(j)), 255 * prediction[j, :, :])
