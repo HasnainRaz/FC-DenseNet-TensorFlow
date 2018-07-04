@@ -77,10 +77,10 @@ The python files ending with "*_test.py" are unit test files, if you make change
 Currently, the test coverage is not that high, I plan to keep adding more in the future.
 
 # TODOs:
-~~1. Add some more functionality in the code.~~
+1. ~~Add some more functionality in the code.~~
 2. Add more detail into this readme.
-~~3. Save model graph.~~
-~~4. Rework command line arguments.~~
+3. ~~Save model graph.~~
+4. ~~Rework command line arguments.~~
 5. Update with some examples of performance once trained.
 6. Increase test coverage.
 7. Save loss summaries for Tensorboard.
