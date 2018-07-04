@@ -62,14 +62,17 @@ To run the network on your own dataset, do the following:
 2. Open up your terminal and navigate to the cloned repository
 3. Type in the following:
 ```bash
-python main.py --mode=train --train_data=path/to/train/data --val_data=path/to/validation/data --ckpt=path/to/save/checkpoint/model.ckpt --layers_per_block=4,5,7,10,12,15 --batch_size=8 --epochs=10 --growth_k=16 --num_classes=2 --learning_rate=0.001
+python main.py --mode=train --train_data=path/to/train/data --val_data=path/to/validation/data \
+--ckpt=path/to/save/checkpoint/model.ckpt --layers_per_block=4,5,7,10,12,15 \
+--batch_size=8 --epochs=10 --growth_k=16 --num_classes=2 --learning_rate=0.001
 ```
 The "layers_per_block" argument is only specified for the downsample path, upto the final bottleneck dense block, the upsample path is then automatically built by mirroring the downsample path.
 
 # Run with trained checkpoint
 To run the code with a trained checkpoint file on images, use the infer mode in in the command line options, like so:
 ```bash
-python main.py --mode=infer --infer_data=path/to/infer/data --batch_size=4 --ckpt=models/model.ckpt-20 --output_folder=outputs
+python main.py --mode=infer --infer_data=path/to/infer/data --batch_size=4 \
+--ckpt=models/model.ckpt-20 --output_folder=outputs
 ```
 
 # Tests
