@@ -308,8 +308,6 @@ class DenseTiramisu(object):
         reset_iou = tf.variables_initializer(var_list=running_vars)
 
         saver = tf.train.Saver(max_to_keep=20)
-        encoder_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='encoder')
-        print('Encoder Variables: ', encoder_vars)
         with tf.Session() as sess:
             sess.run([tf.global_variables_initializer(),
                     tf.local_variables_initializer()])
