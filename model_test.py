@@ -121,6 +121,7 @@ class TestModel(tf.test.TestCase):
             self.assertListEqual([2, 50, 50, 32], list(out_tensor.shape))
     
     def test_model(self):
+        tf.reset_default_graph()
         rand_tensor = tf.random_normal(shape=[2, 100, 100, 3], mean=127)
         training = tf.constant(True)
         logits = self.tiramisu.model(rand_tensor, training)
@@ -135,3 +136,24 @@ class TestModel(tf.test.TestCase):
         self.assertIsNotNone(decoder_vars)
         self.assertIsNotNone(predictions)
         self.assertListEqual([2, 100, 100, 2], list(logits_values.shape))
+
+    def test_model_connectivity(self):
+        tf.reset_default_graph()
+        image_ph = tf.placeholder(tf.float32, shape=[2, 100, 100, 3])
+        labels = tf.ones(shape=[2, 100, 100, 1])
+        training = tf.placeholder(tf.bool)
+        logits = self.tiramisu.model(image_ph, training)
+        loss = self.tiramisu.xentropy_loss(logits, labels)
+        opt = tf.train.AdamOptimizer(learning_rate=0.001).minimize(loss)
+        input_img = np.random.randint(0, 256, size=[2, 100, 100, 3])
+        with self.test_session() as sess:
+            sess.run(tf.global_variables_initializer())
+            before = sess.run(tf.trainable_variables())
+            _ = sess.run(opt, feed_dict={image_ph: input_img,
+                                         training: True})
+            after = sess.run(tf.trainable_variables())
+            # Check that none of the variables are equal before and after 
+            # optimization
+            for b, a in zip(before, after):
+                assertion = (b != a).any()
+                self.assertTrue(assertion)
