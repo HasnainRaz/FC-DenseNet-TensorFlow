@@ -85,5 +85,5 @@ Currently, the test coverage is not that high, I plan to keep adding more in the
 3. ~~Save model graph.~~
 4. ~~Rework command line arguments.~~
 5. Update with some examples of performance once trained.
-6. Increase test coverage.
+6. ~~Increase test coverage.~~
 7. Save loss summaries for Tensorboard.
