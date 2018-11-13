@@ -103,7 +103,7 @@ class DenseTiramisu(object):
                                  padding='SAME',
                                  dilation_rate=[1, 1],
                                  activation=None,
-                                 kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                 kernel_initializer=tf.contrib.layers.variance_scaling_initializer(),
                                  name=name+'_conv3x3')
             x = tf.layers.dropout(x, rate=0.2, training=training, name=name+'_dropout')
 
@@ -156,10 +156,10 @@ class DenseTiramisu(object):
                                  padding='SAME',
                                  dilation_rate=[1, 1],
                                  activation=None,
-                                 kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                 kernel_initializer=tf.contrib.layers.variance_scaling_initializer(),
                                  name=name+'_conv1x1')
             x = tf.layers.dropout(x, rate=0.2, training=training, name=name+'_dropout')
-            x = tf.nn.max_pool(x, [1, 4, 4, 1], [1, 2, 2, 1], padding='SAME', name=name+'_maxpool2x2')
+            x = tf.nn.max_pool(x, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME', name=name+'_maxpool2x2')
 
         return x
 
@@ -181,7 +181,7 @@ class DenseTiramisu(object):
                                            strides=[2, 2],
                                            padding='SAME',
                                            activation=None,
-                                           kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                           kernel_initializer=tf.contrib.layers.variance_scaling_initializer(),
                                            name=name+'_trans_conv3x3')
 
         return x
@@ -206,7 +206,7 @@ class DenseTiramisu(object):
                                 padding='SAME',
                                 dilation_rate=[1, 1],
                                 activation=None,
-                                kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                kernel_initializer=tf.contrib.layers.variance_scaling_initializer(),
                                 name='first_conv3x3')
             print("First Convolution Out: ", x.get_shape())
             for block_nb in range(0, self.nb_blocks):
@@ -236,7 +236,7 @@ class DenseTiramisu(object):
                                 padding='SAME',
                                 dilation_rate=[1, 1],
                                 activation=None,
-                                kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                kernel_initializer=tf.contrib.layers.variance_scaling_initializer(),
                                 name='last_conv1x1')
             print("Mask Prediction: ", x.get_shape())
 
